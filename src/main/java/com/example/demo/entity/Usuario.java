@@ -8,10 +8,23 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.List;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
+/**
+ * Além de ser a entidade JPA da tabela {@code usuario}, implementa
+ * {@link UserDetails} para que o Spring Security consiga autenticar
+ * diretamente a partir dela (sem precisar de uma classe separada de
+ * "usuário autenticado"). O e-mail é o identificador de login
+ * ({@link #getUsername()}), e {@code senhaHash} já guarda a senha
+ * criptografada com BCrypt, usada por {@link #getPassword()}.
+ */
 @Entity
 @Table(name = "usuario")
-public class Usuario {
+public class Usuario implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -88,5 +101,42 @@ public class Usuario {
 
     public void setCriadoEm(LocalDateTime criadoEm) {
         this.criadoEm = criadoEm;
+    }
+
+    // ---- UserDetails (Spring Security) ----
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return List.of(new SimpleGrantedAuthority(role));
+    }
+
+    @Override
+    public String getPassword() {
+        return senhaHash;
+    }
+
+    @Override
+    public String getUsername() {
+        return email;
+    }
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
     }
 }
