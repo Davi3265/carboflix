@@ -1,6 +1,8 @@
-# CarboFlix: Flyway e entidades
+# CarboFlix: Flyway, entidades e autenticação JWT
 
 Entrega de 24/09/2026: criação do banco pelo Flyway e mapeamento das entidades JPA, conforme o DER do documento de análise do CarboFlix.
+
+Entrega de 01/10/2026 (Aula 9): autenticação e autorização com Spring Security + JWT, seguindo a demonstração do professor em aula, adaptada para a entidade `Usuario` e o pacote `com.example.demo` já existentes no projeto.
 
 Projeto acadêmico do grupo CarboFlix em Java 21 e Spring Boot 4.1.1, conforme o starter do Spring Initializr, com Spring Web, JPA, Flyway e PostgreSQL. Utiliza Maven Wrapper 3.9.16, pacote `com.example.demo` e classe `DemoApplication`.
 
@@ -168,9 +170,79 @@ A escrita das migrations Flyway é uma responsabilidade compartilhada. Nesta eta
 
 Preserve o histórico e as contribuições dos colegas. Não envie `target/`, arquivos locais de IDE ou senhas. Depois que uma migration for aplicada, mantenha seu nome e conteúdo; alterações do banco devem entrar em uma nova versão SQL.
 
+## Autenticação com Spring Security + JWT (Aula 9)
+
+A entidade `Usuario` já existia desde a Aula 8 (tabela `usuario`, migration `V1`). Nesta etapa ela passou a implementar `UserDetails`, e foram adicionados os pacotes abaixo em `src/main/java/com/example/demo`:
+
+| Pacote/arquivo | Função |
+| --- | --- |
+| `repository/UsuarioRepository.java` | `findByEmail` e `existsByEmail`, usados no login/cadastro |
+| `dto/request/LoginRequest.java`, `RegisterUserRequest.java` | Dados de entrada validados com Bean Validation (`@NotBlank`, `@Email`, `@Size`) |
+| `dto/response/LoginResponse.java`, `RegisterUserResponse.java` | Dados de saída (nunca devolvemos a entidade `Usuario` direto) |
+| `config/SecurityConfig.java` | Define as rotas públicas/privadas, desliga sessão (STATELESS) e CSRF, registra o filtro JWT |
+| `config/AuthConfig.java` | `UserDetailsService` — busca o `Usuario` pelo e-mail para o Spring Security autenticar |
+| `config/TokenConfig.java` | Gera e valida o token JWT (biblioteca `com.auth0:java-jwt`) |
+| `security/JwtAuthenticationFilter.java` | Filtro que lê o header `Authorization: Bearer`, valida o token e autentica a requisição |
+| `controller/AuthController.java` | Endpoints `POST /auth/register` e `POST /auth/login` |
+| `controller/TesteController.java` | `GET /test`, endpoint protegido só para conferir se o token está funcionando |
+
+Não foi necessária uma nova migration: a tabela `usuario` da Aula 8 já tinha todas as colunas (`email`, `senha_hash`, `role`) usadas pela autenticação.
+
+### Rotas
+
+| Rota | Autenticação | Descrição |
+| --- | --- | --- |
+| `POST /auth/register` | Pública | Cria um usuário (senha criptografada com BCrypt) |
+| `POST /auth/login` | Pública | Autentica e devolve um token JWT válido por 24h |
+| `GET /test` | **Exige token** | Só responde 200 com um `Authorization: Bearer <token>` válido |
+| Qualquer outra rota | Exige token | Regra padrão (`anyRequest().authenticated()`) |
+
+### Exemplo de uso (curl)
+
+```bash
+# 1) Registrar usuário
+curl -X POST http://localhost:8080/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"nome":"Gustavo","email":"gustavo@carboflix.com","senha":"123456"}'
+
+# resposta 201:
+# {"nome":"Gustavo","email":"gustavo@carboflix.com"}
+
+# 2) Login
+curl -X POST http://localhost:8080/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"gustavo@carboflix.com","senha":"123456"}'
+
+# resposta 200:
+# {"token":"eyJhbGciOiJIUzI1NiJ9..."}
+
+# 3) Chamar rota protegida com o token recebido
+curl http://localhost:8080/test \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9..."
+
+# resposta 200: "Testando segurança do CarboFlix!"
+# sem o header, ou com token inválido/expirado: 401
+```
+
+### Variável de ambiente nova
+
+```powershell
+$env:JWT_SECRET = "uma-chave-bem-grande-e-secreta"
+```
+
+Se `JWT_SECRET` não for definida, é usado o valor padrão de `application.properties` (`jwt.secret`) — suficiente para rodar localmente, mas deve ser trocado antes de qualquer deploy real.
+
+### Diferenças em relação à demonstração do professor
+
+- A entidade de autenticação é a própria `Usuario` do CarboFlix (campos `nome`, `email`, `senhaHash`, `role`), não uma classe `User` separada — então os DTOs usam os mesmos nomes em português (`nome`, `senha`) em vez de `name`/`password`.
+- `getUsername()` devolve o `email` (não o nome), pois é o e-mail que é usado para logar.
+- Foi criado o `JwtAuthenticationFilter`, que valida o token em cada requisição — essa parte ainda não tinha sido fechada em aula (o método `login` do professor retornava `null`); aqui o login já devolve o token e as rotas protegidas já validam esse token de verdade.
+- `/auth/register` responde `409 Conflict` se o e-mail já existir, e `/auth/login` responde `401 Unauthorized` com uma mensagem clara em vez de erro 500.
+
 ## Referências técnicas
 
 - [Spring Initializr](https://start.spring.io/)
 - [Spring Boot: Flyway e inicialização do banco](https://docs.spring.io/spring-boot/how-to/data-initialization.html)
 - [Spring Boot: JPA e bancos SQL](https://docs.spring.io/spring-boot/reference/data/sql.html)
 - [Flyway: migrations versionadas](https://documentation.red-gate.com/flyway/flyway-concepts/migrations/versioned-migrations)
+- [Spring Security: autenticação com JWT](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html)
