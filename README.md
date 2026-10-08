@@ -1,8 +1,10 @@
-# CarboFlix: Flyway, entidades e autenticação JWT
+# CarboFlix: Flyway, entidades, autenticação JWT, CRUD de Usuario e Swagger
 
 Entrega de 24/09/2026: criação do banco pelo Flyway e mapeamento das entidades JPA, conforme o DER do documento de análise do CarboFlix.
 
 Entrega de 01/10/2026 (Aula 9): autenticação e autorização com Spring Security + JWT, seguindo a demonstração do professor em aula, adaptada para a entidade `Usuario` e o pacote `com.example.demo` já existentes no projeto.
+
+Entrega de 08/10/2026 (Aula 10): aplicação das camadas Controller/Service/Repository — nesta branch, a parte do `Usuario` (CRUD completo) e a infraestrutura compartilhada (`GlobalExceptionHandler` e documentação Swagger/OpenAPI). As demais entidades (`Perfil`, `Filme`, `Categoria`, `Avaliacao`) ficam para os PRs dos colegas responsáveis por cada uma. Veja a seção [CRUD de Usuario, tratamento de erro e Swagger](#crud-de-usuario-tratamento-de-erro-e-swagger-aula-10).
 
 Projeto acadêmico do grupo CarboFlix em Java 21 e Spring Boot 4.1.1, conforme o starter do Spring Initializr, com Spring Web, JPA, Flyway e PostgreSQL. Utiliza Maven Wrapper 3.9.16, pacote `com.example.demo` e classe `DemoApplication`.
 
@@ -13,7 +15,7 @@ Projeto acadêmico do grupo CarboFlix em Java 21 e Spring Boot 4.1.1, conforme o
 - Enum `TipoPerfil`: `ADULTO` e `INFANTIL`.
 - Configuração PostgreSQL + Flyway com `spring.jpa.hibernate.ddl-auto=validate`.
 
-O escopo é o banco e seu mapeamento. Os CRUDs, controllers, serviços, DTOs e autenticação ficam para as próximas entregas. Spring Web foi mantido para essa evolução, mas ainda não existem endpoints.
+O escopo desta primeira entrega era o banco e seu mapeamento; CRUDs, controllers, serviços, DTOs e autenticação vieram nas entregas seguintes (Aula 9 e Aula 10, descritas mais abaixo). Spring Web foi mantido desde esta etapa para essa evolução.
 
 ## Dependências
 
@@ -239,6 +241,60 @@ Se `JWT_SECRET` não for definida, é usado o valor padrão de `application.prop
 - Foi criado o `JwtAuthenticationFilter`, que valida o token em cada requisição — essa parte ainda não tinha sido fechada em aula (o método `login` do professor retornava `null`); aqui o login já devolve o token e as rotas protegidas já validam esse token de verdade.
 - `/auth/register` responde `409 Conflict` se o e-mail já existir, e `/auth/login` responde `401 Unauthorized` com uma mensagem clara em vez de erro 500.
 
+## CRUD de Usuario, tratamento de erro e Swagger (Aula 10)
+
+Até a Aula 9, `Usuario` tinha camada parcial: o `AuthController` só criava conta e autenticava, sem `GET`/`PUT`/`DELETE`. Esta branch fecha essa parte (a responsabilidade do Usuario no grupo) e acrescenta duas peças de infraestrutura compartilhada que o restante dos Controllers (Perfil, Filme, Categoria, Avaliacao, cada um no PR do colega responsável) também vai usar: tratamento de erro centralizado e documentação Swagger.
+
+### CRUD de Usuario
+
+| Arquivo | Função |
+| --- | --- |
+| `service/UsuarioService.java` | Regra de negócio: cadastro (usado pelo `AuthController`), busca, atualização (e-mail duplicado é rejeitado, senha só muda se enviada) e remoção |
+| `controller/UsuarioController.java` | `GET /usuarios`, `GET /usuarios/{id}`, `PUT /usuarios/{id}`, `DELETE /usuarios/{id}` |
+| `dto/request/UpdateUsuarioRequest.java` | Nome e e-mail obrigatórios; senha opcional (só altera se vier preenchida) |
+| `dto/response/UsuarioResponse.java` | Nunca expõe `senhaHash` |
+
+`AuthController` passou a delegar a criação de conta para `UsuarioService.registrar(...)` em vez de acessar o `UsuarioRepository` direto — assim a checagem de e-mail duplicado fica num único lugar.
+
+`GET /usuarios`, `GET /usuarios/{id}`, `PUT /usuarios/{id}` e `DELETE /usuarios/{id}` não restringem a operação à própria conta nem a uma role de administrador — não há ainda papéis diferentes de `ROLE_USER` no projeto. Fica como melhoria natural de uma próxima etapa (`@PreAuthorize` com uma `ROLE_ADMIN`, ou comparar o id da rota com o usuário autenticado).
+
+### Tratamento de erro centralizado (`GlobalExceptionHandler`)
+
+Antes desta entrega, só o `AuthController` tratava algo (`BadCredentialsException`, só para o login). Agora `exception/GlobalExceptionHandler.java` (`@RestControllerAdvice`) cobre qualquer Controller da API — inclusive os que o resto do grupo for fechando:
+
+| Situação | Status | Exceção lançada pelo Service |
+| --- | --- | --- |
+| `@Valid` rejeita o DTO | 400 | — (Spring lança `MethodArgumentNotValidException` antes de chegar no Service) |
+| JSON malformado ou enum inválido | 400 | — (`HttpMessageNotReadableException`) |
+| Recurso não encontrado (ou não pertence à conta) | 404 | `exception.RecursoNaoEncontradoException` |
+| Regra de negócio violada (ex.: e-mail já cadastrado) | 409 | `exception.RegraNegocioException` |
+| Exclusão bloqueada por FK (ex.: registro vinculado a outro) | 409 | — (`DataIntegrityViolationException`) |
+| E-mail/senha inválidos no login | 401 | — (`BadCredentialsException`, lançada pelo `AuthenticationManager`) |
+| Qualquer outro erro não previsto | 500 | — |
+
+Todo erro vem no mesmo formato (`ErroResponse`/`ErroValidacaoResponse`, em `dto/response`), por exemplo:
+
+```json
+{"status":409,"mensagem":"E-mail já cadastrado.","timestamp":"2026-10-08T21:00:00"}
+```
+
+Pra usar nos Services das outras entidades, basta lançar `new RecursoNaoEncontradoException("...")` ou `new RegraNegocioException("...")` — o handler cuida do resto.
+
+### Swagger / OpenAPI
+
+Seguindo a aula sobre documentação de API (springdoc-openapi, `@Tag`, `@Operation`, `@ApiResponses`):
+
+| Arquivo | Função |
+| --- | --- |
+| `pom.xml` | Dependência `org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13` |
+| `config/OpenAPIConfig.java` | Informações da API e o esquema de segurança Bearer/JWT (botão "Authorize" no Swagger UI) |
+| `config/SecurityConfig.java` | `/swagger-ui.html`, `/swagger-ui/**` e `/v3/api-docs/**` liberados (`permitAll()`) |
+| `doc/AuthControllerDoc.java`, `doc/UsuarioControllerDoc.java` | Interfaces com `@Tag` (uma por Controller) e `@Operation`/`@ApiResponses` por endpoint |
+
+O Controller implementa a interface `*Doc` (ex.: `AuthController implements AuthControllerDoc`) e herda as anotações do Swagger — as anotações de mapeamento HTTP (`@PostMapping`, `@RequestBody`, `@Valid`) continuam só no Controller, pra não misturar documentação com a lógica da rota. Cada colega responsável por uma entidade deve criar sua própria `*ControllerDoc` (ex.: `PerfilControllerDoc`, `FilmeControllerDoc`) seguindo o mesmo padrão.
+
+Com a aplicação rodando, a documentação interativa fica em `http://localhost:8080/swagger-ui.html` (clique em "Authorize" e cole o token JWT obtido em `POST /auth/login`, no formato `Bearer <token>`, pra testar as rotas protegidas direto pela interface).
+
 ## Referências técnicas
 
 - [Spring Initializr](https://start.spring.io/)
@@ -246,3 +302,6 @@ Se `JWT_SECRET` não for definida, é usado o valor padrão de `application.prop
 - [Spring Boot: JPA e bancos SQL](https://docs.spring.io/spring-boot/reference/data/sql.html)
 - [Flyway: migrations versionadas](https://documentation.red-gate.com/flyway/flyway-concepts/migrations/versioned-migrations)
 - [Spring Security: autenticação com JWT](https://docs.spring.io/spring-security/reference/servlet/oauth2/resource-server/jwt.html)
+- [Spring Boot: validação de DTOs com Bean Validation](https://docs.spring.io/spring-boot/reference/io/validation.html)
+- [Spring: tratamento de erro com `@ControllerAdvice`/`@ExceptionHandler`](https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-exceptionhandler.html)
+- [springdoc-openapi: documentação do Swagger/OpenAPI no Spring Boot](https://springdoc.org/)
