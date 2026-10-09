@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.doc.FilmeControllerDoc;
 import com.example.demo.dto.request.CreateFilmeRequest;
 import com.example.demo.dto.request.UpdateFilmeRequest;
 import com.example.demo.dto.response.CategoriaResponse;
@@ -24,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/filmes")
-public class FilmeController {
+public class FilmeController implements FilmeControllerDoc {
 
     private final FilmeService filmeService;
 
