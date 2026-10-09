@@ -1,10 +1,10 @@
-# CarboFlix: Flyway, entidades, autenticação JWT, CRUD de Usuario e Swagger
+# CarboFlix: Flyway, entidades, autenticação JWT, CRUD de Usuario e Perfil e Swagger
 
 Entrega de 24/09/2026: criação do banco pelo Flyway e mapeamento das entidades JPA, conforme o DER do documento de análise do CarboFlix.
 
 Entrega de 01/10/2026 (Aula 9): autenticação e autorização com Spring Security + JWT, seguindo a demonstração do professor em aula, adaptada para a entidade `Usuario` e o pacote `com.example.demo` já existentes no projeto.
 
-Entrega de 08/10/2026 (Aula 10): aplicação das camadas Controller/Service/Repository — nesta branch, a parte do `Usuario` (CRUD completo) e a infraestrutura compartilhada (`GlobalExceptionHandler` e documentação Swagger/OpenAPI). As demais entidades (`Perfil`, `Filme`, `Categoria`, `Avaliacao`) ficam para os PRs dos colegas responsáveis por cada uma. Veja a seção [CRUD de Usuario, tratamento de erro e Swagger](#crud-de-usuario-tratamento-de-erro-e-swagger-aula-10).
+Entrega de 08/10/2026 (Aula 10): aplicação das camadas Controller/Service/Repository. A `main` já contém as partes de `Usuario`, `Categoria` e `Avaliacao`, além da infraestrutura compartilhada (`GlobalExceptionHandler` e documentação Swagger/OpenAPI). Esta contribuição de Davi acrescenta somente o CRUD de `Perfil`, com sua interface de documentação. A parte de `Filme` é responsabilidade de Kauan. Veja as seções de Usuario e [Perfil](#crud-de-perfil-aula-10--davi).
 
 Projeto acadêmico do grupo CarboFlix em Java 21 e Spring Boot 4.1.1, conforme o starter do Spring Initializr, com Spring Web, JPA, Flyway e PostgreSQL. Utiliza Maven Wrapper 3.9.16, pacote `com.example.demo` e classe `DemoApplication`.
 
@@ -294,6 +294,68 @@ Seguindo a aula sobre documentação de API (springdoc-openapi, `@Tag`, `@Operat
 O Controller implementa a interface `*Doc` (ex.: `AuthController implements AuthControllerDoc`) e herda as anotações do Swagger — as anotações de mapeamento HTTP (`@PostMapping`, `@RequestBody`, `@Valid`) continuam só no Controller, pra não misturar documentação com a lógica da rota. Cada colega responsável por uma entidade deve criar sua própria `*ControllerDoc` (ex.: `PerfilControllerDoc`, `FilmeControllerDoc`) seguindo o mesmo padrão.
 
 Com a aplicação rodando, a documentação interativa fica em `http://localhost:8080/swagger-ui.html` (clique em "Authorize" e cole o token JWT obtido em `POST /auth/login`, no formato `Bearer <token>`, pra testar as rotas protegidas direto pela interface).
+
+## CRUD de Perfil (Aula 10 — Davi)
+
+Implementação baseada nos arquivos de Perfil do ZIP `carboflix-camadas-aula10.zip`, preparada sobre a `main` após os PRs #2 e #3 do grupo. Segue o padrão Controller → Service → Repository, DTOs validados e interface `doc/PerfilControllerDoc`, que concentra as anotações Swagger. Não foi necessária alteração de entidade, dependência, configuração compartilhada ou migration; `ddl-auto=validate` permanece.
+
+| Arquivo | Responsabilidade |
+| --- | --- |
+| `repository/PerfilRepository.java` | Consulta perfis pelo usuário, busca por id e usuário, contagem por conta |
+| `service/PerfilService.java` | CRUD, vínculo com a conta autenticada e limite de perfis |
+| `controller/PerfilController.java` | Rotas HTTP e conversão para `PerfilResponse` |
+| `dto/request/CreatePerfilRequest.java` | Entrada de cadastro: nome, avatar opcional e tipo |
+| `dto/request/UpdatePerfilRequest.java` | Entrada de atualização: nome, avatar opcional e tipo |
+| `dto/response/PerfilResponse.java` | Saída sem entidade Usuario ou senha |
+| `doc/PerfilControllerDoc.java` | Documentação Swagger no padrão das interfaces do grupo |
+
+### Rotas de Perfil
+
+| Método | Rota | Resultado |
+| --- | --- | --- |
+| GET | `/perfis` | 200: lista dos perfis da conta autenticada |
+| GET | `/perfis/{id}` | 200: perfil da conta; 404: ausente na conta |
+| POST | `/perfis` | 201: perfil criado |
+| PUT | `/perfis/{id}` | 200: perfil atualizado |
+| DELETE | `/perfis/{id}` | 204: perfil removido |
+
+Todas exigem JWT. O usuário vem de `@AuthenticationPrincipal`, preenchido pelo filtro JWT existente; não existe `usuarioId` no DTO de entrada. Buscar, atualizar ou excluir um perfil de outra conta retorna 404. Os dados de entrada são validados (`nomePerfil` obrigatório, até 120 caracteres; `avatarUrl` opcional, até 500; `tipo` obrigatório, ADULTO ou INFANTIL).
+
+O limite padrão é de cinco perfis por conta, conforme a referência. Pode ser alterado pela propriedade `app.perfis.limite-por-conta` na execução, sem mudança de código:
+
+```powershell
+# Opcional: configurar outro limite de perfis para a execução local.
+$env:APP_PERFIS_LIMITE_POR_CONTA = "5"
+```
+
+O sexto cadastro retorna 409 com o limite padrão. Excluir um perfil com avaliações vinculadas também pode retornar 409, pelo tratamento de integridade compartilhado; não há exclusão em cascata.
+
+Depois de registrar uma conta e obter o token em `/auth/login`, no Swagger clique em **Authorize**, informe o token JWT e use o grupo **Perfil**. Exemplo de corpo para POST e PUT:
+
+```json
+{
+  "nomePerfil": "Davi",
+  "avatarUrl": null,
+  "tipo": "ADULTO"
+}
+```
+
+A contribuição inclui testes de Perfil para as regras do Service e o contrato HTTP (DTO de saída, validação e erro 404). Esses testes usam mocks e não precisam de PostgreSQL:
+
+```powershell
+.\mvnw.cmd "-Dtest=PerfilServiceTests,PerfilControllerTests" test
+```
+
+Os testes de Perfil não substituem a execução do teste de contexto com PostgreSQL (`DemoApplicationTests`). Use um banco separado para essa execução, conforme a seção Compilar e testar.
+
+### Resultado da validação e pendências do conjunto
+
+Os 11 testes de Perfil (7 de Service e 4 de Controller) passaram com Java 21 sobre a base `6867447`, após o PR #2. Foi necessário carregar o agente Mockito explicitamente na execução neste ambiente; nenhuma dependência do projeto foi alterada para isso. O teste de contexto com PostgreSQL não foi executado.
+
+A branch foi depois atualizada para a `main` `9828e55`, que inclui o PR #3 de Categoria/Avaliacao. Nessa base, a compilação fica bloqueada porque `AvaliacaoService` referencia `FilmeRepository`, ainda ausente: a parte de Filme precisa ser integrada para validar o conjunto. O `PerfilRepository` desta contribuição já fornece a consulta usada por `AvaliacaoService`.
+
+A dependência compartilhada `springdoc-openapi-starter-webmvc-ui:2.8.13` também precisa ser revisada pelo grupo: o projeto usa Spring Boot 4.1.1, enquanto a [documentação de compatibilidade do springdoc](https://springdoc.org/#what-is-the-compatibility-matrix-of-springdoc-openapi-with-spring-boot) indica a linha 3.x para Boot 4. A interface `PerfilControllerDoc` está implementada; o funcionamento do Swagger em execução não foi validado com essa combinação atual.
+
 
 ## Referências técnicas
 
