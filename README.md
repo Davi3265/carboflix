@@ -348,14 +348,11 @@ A contribuição inclui testes de Perfil para as regras do Service e o contrato 
 
 Os testes de Perfil não substituem a execução do teste de contexto com PostgreSQL (`DemoApplicationTests`). Use um banco separado para essa execução, conforme a seção Compilar e testar.
 
-### Resultado da validação e pendências do conjunto
+### Validação do conjunto
 
-Os 11 testes de Perfil (7 de Service e 4 de Controller) passaram com Java 21 sobre a base `6867447`, após o PR #2. Foi necessário carregar o agente Mockito explicitamente na execução neste ambiente; nenhuma dependência do projeto foi alterada para isso. O teste de contexto com PostgreSQL não foi executado.
+Os 11 testes de Perfil passaram na base após o PR #2. Depois, a combinação das contribuições de Perfil e Filme com as correções compartilhadas passou em 27 testes: os 11 de Perfil e 16 de segurança, validação, autenticação e OpenAPI. O contexto real de MVC/JWT/Swagger foi iniciado com os repositórios simulados, sem PostgreSQL; o agente Mockito foi carregado explicitamente neste ambiente.
 
-A branch foi depois atualizada para a `main` `9828e55`, que inclui o PR #3 de Categoria/Avaliacao. Nessa base, a compilação fica bloqueada porque `AvaliacaoService` referencia `FilmeRepository`, ainda ausente: a parte de Filme precisa ser integrada para validar o conjunto. O `PerfilRepository` desta contribuição já fornece a consulta usada por `AvaliacaoService`.
-
-A dependência compartilhada `springdoc-openapi-starter-webmvc-ui:2.8.13` também precisa ser revisada pelo grupo: o projeto usa Spring Boot 4.1.1, enquanto a [documentação de compatibilidade do springdoc](https://springdoc.org/#what-is-the-compatibility-matrix-of-springdoc-openapi-with-spring-boot) indica a linha 3.x para Boot 4. A interface `PerfilControllerDoc` está implementada; o funcionamento do Swagger em execução não foi validado com essa combinação atual.
-
+Para executar o conjunto, integre os PRs de Perfil, Filme e correções compartilhadas. As correções usam springdoc 3.1.1 para Spring Boot 4, documentam todas as entidades, retornam 401 para token ausente/inválido e 400 para parâmetros malformados. O teste de contexto com PostgreSQL (`DemoApplicationTests`) continua sendo uma verificação separada.
 
 ## Referências técnicas
 
