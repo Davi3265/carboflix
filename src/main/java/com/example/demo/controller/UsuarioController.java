@@ -7,8 +7,8 @@ import com.example.demo.entity.Usuario;
 import com.example.demo.service.UsuarioService;
 import jakarta.validation.Valid;
 import java.util.List;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -19,11 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * CRUD de {@code Usuario} (criar e autenticar continuam no
- * {@code AuthController}, em {@code /auth}). Qualquer usuário autenticado
- * pode listar, ver, atualizar ou remover qualquer conta — não há ainda
- * papéis (roles) diferentes ou uma checagem de "só a própria conta", então
- * isso fica como um próximo passo natural (ex.: {@code @PreAuthorize} com
- * uma ROLE_ADMIN, ou comparar o id da rota com o usuário autenticado).
+ * {@code AuthController}, em {@code /auth}). Cada conta autenticada acessa
+ * somente seus dados; o Service confere o id da rota antes de consultar ou alterar.
  */
 @RestController
 @RequestMapping("/usuarios")
@@ -36,27 +33,29 @@ public class UsuarioController implements UsuarioControllerDoc {
     }
 
     @GetMapping
-    public ResponseEntity<List<UsuarioResponse>> listar() {
-        List<UsuarioResponse> usuarios = usuarioService.listarTodos().stream()
+    public ResponseEntity<List<UsuarioResponse>> listar(@AuthenticationPrincipal Usuario usuarioAutenticado) {
+        List<UsuarioResponse> usuarios = usuarioService.listarDaConta(usuarioAutenticado).stream()
                 .map(UsuarioController::toResponse)
                 .toList();
         return ResponseEntity.ok(usuarios);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UsuarioResponse> buscarPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(toResponse(usuarioService.buscarPorId(id)));
+    public ResponseEntity<UsuarioResponse> buscarPorId(@AuthenticationPrincipal Usuario usuarioAutenticado,
+                                                       @PathVariable Long id) {
+        return ResponseEntity.ok(toResponse(usuarioService.buscarPorId(usuarioAutenticado, id)));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UsuarioResponse> atualizar(@PathVariable Long id,
+    public ResponseEntity<UsuarioResponse> atualizar(@AuthenticationPrincipal Usuario usuarioAutenticado,
+                                                       @PathVariable Long id,
                                                        @Valid @RequestBody UpdateUsuarioRequest request) {
-        return ResponseEntity.ok(toResponse(usuarioService.atualizar(id, request)));
+        return ResponseEntity.ok(toResponse(usuarioService.atualizar(usuarioAutenticado, id, request)));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        usuarioService.deletar(id);
+    public ResponseEntity<Void> deletar(@AuthenticationPrincipal Usuario usuarioAutenticado, @PathVariable Long id) {
+        usuarioService.deletar(usuarioAutenticado, id);
         return ResponseEntity.noContent().build();
     }
 

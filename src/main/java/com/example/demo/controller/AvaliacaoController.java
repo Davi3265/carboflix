@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.doc.AvaliacaoControllerDoc;
 import com.example.demo.dto.request.CreateAvaliacaoRequest;
 import com.example.demo.dto.request.UpdateAvaliacaoRequest;
 import com.example.demo.dto.response.AvaliacaoResponse;
@@ -22,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/avaliacoes")
-public class AvaliacaoController {
+public class AvaliacaoController implements AvaliacaoControllerDoc {
 
     private final AvaliacaoService avaliacaoService;
 
