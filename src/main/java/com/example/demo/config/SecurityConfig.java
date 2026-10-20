@@ -47,6 +47,11 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"
                         ).permitAll()
+                        // Frontend estático (src/main/resources/static). Os dados continuam
+                        // protegidos: a página chama a API enviando o token JWT.
+                        .requestMatchers(HttpMethod.GET,
+                                "/", "/index.html", "/favicon.svg", "/css/**", "/js/**"
+                        ).permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();

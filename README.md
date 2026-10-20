@@ -356,6 +356,46 @@ Os 11 testes de Perfil passaram na base após o PR #2. Depois, a combinação da
 
 Para executar o conjunto, integre os PRs de Perfil, Filme e correções compartilhadas. As correções usam springdoc 3.1.1 para Spring Boot 4, documentam todas as entidades, retornam 401 para token ausente/inválido e 400 para parâmetros malformados. O teste de contexto com PostgreSQL (`DemoApplicationTests`) continua sendo uma verificação separada.
 
+## Frontend da Aplicação
+
+O frontend é uma aplicação web (SPA) em HTML, CSS e JavaScript puro, servida pelo próprio Spring Boot. Não precisa de Node nem de um segundo servidor: com a API rodando (seção [Rodar no Windows](#rodar-no-windows)), basta abrir **http://localhost:8080**.
+
+As telas foram projetadas antes no Figma, no arquivo **CarboFlix - Protótipo de Telas** (https://www.figma.com/design/KEuOFg8Cu1uI7ymmRFCwUZ). A página *Telas* tem as 10 telas e o fluxo principal navegável a partir do login (botão *Present*); a página *Componentes* tem os componentes e as variáveis de cor usados em todas elas. O CSS do frontend usa os mesmos tokens de cor e a mesma fonte (Inter) do protótipo.
+
+| Tela (Figma) | Rota | O que faz na API |
+| --- | --- | --- |
+| 01 Login · 02 Cadastro | `#/login` | `POST /auth/login`, `POST /auth/register` |
+| 03 Perfis · 04 Editar perfil | `#/perfis` | CRUD de `/perfis` e escolha do perfil ativo |
+| 05 Catálogo | `#/catalogo` | `GET /filmes` e `/categorias`, com busca por título e filtro por categoria |
+| 06 Detalhe do filme | `#/filmes/{id}` | `GET /filmes/{id}` e CRUD de `/avaliacoes` com o perfil ativo |
+| 07 Gerenciar filmes · 08 Formulário de filme | `#/gerenciar` | CRUD de `/filmes`, com associação de categorias |
+| 09 Categorias | `#/categorias` | CRUD de `/categorias` |
+| 10 Minha conta | `#/conta` | `GET`, `PUT` e `DELETE /usuarios/{id}` |
+
+Depois do login, o token JWT fica no `localStorage` do navegador e vai no cabeçalho `Authorization: Bearer` de cada requisição. Se a API responder 401 (token expirado ou inválido), o frontend volta para o login. Os erros do `GlobalExceptionHandler` aparecem na interface: os de validação (400) embaixo de cada campo, e os de regra de negócio (404/409, como "Este perfil já avaliou este filme.") num alerta no formulário ou no diálogo.
+
+No `SecurityConfig`, só o `GET` dos arquivos estáticos (`/`, `/index.html`, `/favicon.svg`, `/css/**`, `/js/**`) foi liberado. Todas as rotas de dados continuam exigindo o token.
+
+### Estrutura
+
+```
+src/main/resources/static/
+├── index.html            # página única; carrega js/main.js como módulo
+├── favicon.svg
+├── css/carboflix.css     # tokens de cor do Figma + estilos das telas
+└── js/
+    ├── main.js           # roteador (#/rota) e barra de navegação
+    ├── api.js            # cliente da API (fetch + token + tratamento de erro)
+    ├── session.js        # token, conta e perfil ativo no localStorage
+    ├── ui.js             # componentes: pôster, avatar, estrelas, modal, toast, campos
+    └── views/            # uma tela por arquivo
+        ├── login.js  perfis.js  catalogo.js  filme.js
+        ├── gerenciar-filmes.js  filme-form.js
+        └── categorias.js  conta.js
+```
+
+Para quem for cadastrar filmes: se `posterUrl` for preenchido com uma URL `http(s)` de imagem, o pôster aparece no catálogo; sem URL (ou se a imagem não carregar), o frontend desenha um pôster com gradiente e o título, como no protótipo.
+
 ## Referências técnicas
 
 - [Spring Initializr](https://start.spring.io/)
