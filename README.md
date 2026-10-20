@@ -396,6 +396,16 @@ src/main/resources/static/
 
 Para quem for cadastrar filmes: se `posterUrl` for preenchido com uma URL `http(s)` de imagem, o pôster aparece no catálogo; sem URL (ou se a imagem não carregar), o frontend desenha um pôster com gradiente e o título, como no protótipo.
 
+## Deploy no Render
+
+O projeto tem `Dockerfile` (o Render não tem runtime Java nativo) e um Blueprint em `render.yaml`, que cria o PostgreSQL 17 e o serviço web no plano gratuito, na região Virginia. Para publicar: no Render, **New > Blueprint**, escolha este repositório e confirme. O Render preenche sozinho `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` e gera um `JWT_SECRET`. O Flyway cria as tabelas no primeiro start.
+
+Depois do deploy, o frontend fica na raiz da URL do serviço (`https://<servico>.onrender.com`) e o Swagger em `/swagger-ui.html`.
+
+Limites do plano gratuito: o serviço hiberna após 15 minutos sem acesso e leva cerca de 1 minuto para voltar (abra o link um pouco antes de apresentar); o banco gratuito expira 30 dias após a criação e não tem backup.
+
+Localmente nada muda: `DB_URL` continua tendo prioridade e a porta padrão continua 8080 (`server.port=${PORT:8080}`).
+
 ## Referências técnicas
 
 - [Spring Initializr](https://start.spring.io/)

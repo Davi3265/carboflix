@@ -1,0 +1,44 @@
+# Blueprint do Render: cria o banco PostgreSQL e o serviço web (API + frontend + Swagger).
+# No Render: New > Blueprint > escolha este repositório.
+databases:
+  - name: carboflix-db
+    plan: free
+    region: virginia
+    databaseName: carboflix
+    user: carboflix
+    postgresMajorVersion: "17"
+
+services:
+  - type: web
+    name: carboflix
+    runtime: docker
+    plan: free
+    region: virginia
+    branch: main
+    healthCheckPath: /
+    envVars:
+      - key: DB_HOST
+        fromDatabase:
+          name: carboflix-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: carboflix-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: carboflix-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: carboflix-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: carboflix-db
+          property: password
+      - key: JWT_SECRET
+        generateValue: true
+      # Os logs de SQL ficam desligados no servidor (localmente continuam ligados).
+      - key: SPRING_JPA_SHOW_SQL
+        value: "false"
