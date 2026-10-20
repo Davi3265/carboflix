@@ -43,19 +43,22 @@ public class UsuarioService {
     }
 
     @Transactional(readOnly = true)
-    public List<Usuario> listarTodos() {
-        return usuarioRepository.findAll();
+    public List<Usuario> listarDaConta(Usuario usuarioAutenticado) {
+        return List.of(buscarPorId(usuarioAutenticado, usuarioAutenticado.getId()));
     }
 
     @Transactional(readOnly = true)
-    public Usuario buscarPorId(Long id) {
+    public Usuario buscarPorId(Usuario usuarioAutenticado, Long id) {
+        if (!id.equals(usuarioAutenticado.getId())) {
+            throw new RecursoNaoEncontradoException("Usuário não encontrado.");
+        }
         return usuarioRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário não encontrado."));
     }
 
     @Transactional
-    public Usuario atualizar(Long id, UpdateUsuarioRequest request) {
-        Usuario usuario = buscarPorId(id);
+    public Usuario atualizar(Usuario usuarioAutenticado, Long id, UpdateUsuarioRequest request) {
+        Usuario usuario = buscarPorId(usuarioAutenticado, id);
 
         usuarioRepository.findByEmail(request.email())
                 .filter(outro -> !outro.getId().equals(id))
@@ -72,8 +75,8 @@ public class UsuarioService {
     }
 
     @Transactional
-    public void deletar(Long id) {
-        Usuario usuario = buscarPorId(id);
+    public void deletar(Usuario usuarioAutenticado, Long id) {
+        Usuario usuario = buscarPorId(usuarioAutenticado, id);
         usuarioRepository.delete(usuario);
     }
 }

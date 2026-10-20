@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.doc.CategoriaControllerDoc;
 import com.example.demo.dto.request.CreateCategoriaRequest;
 import com.example.demo.dto.request.UpdateCategoriaRequest;
 import com.example.demo.dto.response.CategoriaResponse;
@@ -20,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/categorias")
-public class CategoriaController {
+public class CategoriaController implements CategoriaControllerDoc {
 
     private final CategoriaService categoriaService;
 

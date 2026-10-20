@@ -256,7 +256,7 @@ Até a Aula 9, `Usuario` tinha camada parcial: o `AuthController` só criava con
 
 `AuthController` passou a delegar a criação de conta para `UsuarioService.registrar(...)` em vez de acessar o `UsuarioRepository` direto — assim a checagem de e-mail duplicado fica num único lugar.
 
-`GET /usuarios`, `GET /usuarios/{id}`, `PUT /usuarios/{id}` e `DELETE /usuarios/{id}` não restringem a operação à própria conta nem a uma role de administrador — não há ainda papéis diferentes de `ROLE_USER` no projeto. Fica como melhoria natural de uma próxima etapa (`@PreAuthorize` com uma `ROLE_ADMIN`, ou comparar o id da rota com o usuário autenticado).
+`GET /usuarios` devolve somente a conta autenticada. Buscar, atualizar ou remover outro id retorna 404, seguindo o mesmo critério de propriedade de Perfil. Os DTOs limitam nome a 120 caracteres e e-mail a 254, conforme o banco. Cadastro e login continuam públicos.
 
 ### Tratamento de erro centralizado (`GlobalExceptionHandler`)
 
@@ -265,10 +265,12 @@ Antes desta entrega, só o `AuthController` tratava algo (`BadCredentialsExcepti
 | Situação | Status | Exceção lançada pelo Service |
 | --- | --- | --- |
 | `@Valid` rejeita o DTO | 400 | — (Spring lança `MethodArgumentNotValidException` antes de chegar no Service) |
+| Parâmetro com tipo inválido (ex.: id não numérico) | 400 | — (`MethodArgumentTypeMismatchException`) |
 | JSON malformado ou enum inválido | 400 | — (`HttpMessageNotReadableException`) |
 | Recurso não encontrado (ou não pertence à conta) | 404 | `exception.RecursoNaoEncontradoException` |
 | Regra de negócio violada (ex.: e-mail já cadastrado) | 409 | `exception.RegraNegocioException` |
 | Exclusão bloqueada por FK (ex.: registro vinculado a outro) | 409 | — (`DataIntegrityViolationException`) |
+| Token ausente ou inválido em rota protegida | 401 | — (`ApiAuthenticationEntryPoint`, no filtro de segurança) |
 | E-mail/senha inválidos no login | 401 | — (`BadCredentialsException`, lançada pelo `AuthenticationManager`) |
 | Qualquer outro erro não previsto | 500 | — |
 
@@ -286,10 +288,10 @@ Seguindo a aula sobre documentação de API (springdoc-openapi, `@Tag`, `@Operat
 
 | Arquivo | Função |
 | --- | --- |
-| `pom.xml` | Dependência `org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.13` |
+| `pom.xml` | Dependência `org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1` |
 | `config/OpenAPIConfig.java` | Informações da API e o esquema de segurança Bearer/JWT (botão "Authorize" no Swagger UI) |
 | `config/SecurityConfig.java` | `/swagger-ui.html`, `/swagger-ui/**` e `/v3/api-docs/**` liberados (`permitAll()`) |
-| `doc/AuthControllerDoc.java`, `doc/UsuarioControllerDoc.java` | Interfaces com `@Tag` (uma por Controller) e `@Operation`/`@ApiResponses` por endpoint |
+| `doc/AuthControllerDoc.java`, `doc/UsuarioControllerDoc.java`, `doc/CategoriaControllerDoc.java`, `doc/AvaliacaoControllerDoc.java` | Interfaces com `@Tag` (uma por Controller) e `@Operation`/`@ApiResponses` por endpoint |
 
 O Controller implementa a interface `*Doc` (ex.: `AuthController implements AuthControllerDoc`) e herda as anotações do Swagger — as anotações de mapeamento HTTP (`@PostMapping`, `@RequestBody`, `@Valid`) continuam só no Controller, pra não misturar documentação com a lógica da rota. Cada colega responsável por uma entidade deve criar sua própria `*ControllerDoc` (ex.: `PerfilControllerDoc`, `FilmeControllerDoc`) seguindo o mesmo padrão.
 
