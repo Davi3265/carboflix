@@ -5,6 +5,8 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.servers.Server;
+import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -28,6 +30,10 @@ public class OpenAPIConfig {
                         .description("API REST do CarboFlix — catálogo de filmes com perfis, categorias e "
                                 + "avaliações por conta. Projeto acadêmico da disciplina de backend (UNESC).")
                         .version("v1.0"))
+                // URL relativa: o "Try it out" usa o mesmo host/protocolo da página.
+                // Sem isso o springdoc gera http://... e, atrás do HTTPS do Render,
+                // o navegador bloqueia as chamadas (conteúdo misto).
+                .servers(List.of(new Server().url("/")))
                 .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
                 .components(new Components()
                         .addSecuritySchemes(SECURITY_SCHEME_NAME, new SecurityScheme()

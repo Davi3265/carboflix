@@ -200,6 +200,30 @@ class ApiRegressionTests {
     }
 
     @Test
+    void openApiDocumentaErrosComOsDtosDoHandler() throws Exception {
+        String erro = "#/components/schemas/ErroResponse";
+        String validacao = "#/components/schemas/ErroValidacaoResponse";
+        mvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.servers[0].url").value("/"))
+                .andExpect(jsonPath("$.paths['/auth/login'].post.responses['401'].content['application/json'].schema['$ref']").value(erro))
+                .andExpect(jsonPath("$.paths['/perfis'].post.responses['400'].content['application/json'].schema.oneOf[0]['$ref']").value(validacao))
+                .andExpect(jsonPath("$.paths['/perfis'].post.responses['400'].content['application/json'].schema.oneOf[1]['$ref']").value(erro))
+                .andExpect(jsonPath("$.paths['/perfis/{id}'].get.responses['400'].content['application/json'].schema['$ref']").value(erro))
+                .andExpect(jsonPath("$.paths['/filmes/{id}'].get.responses['404'].content['application/json'].schema['$ref']").value(erro))
+                .andExpect(jsonPath("$.paths['/avaliacoes'].post.responses['409'].content['application/json'].schema['$ref']").value(erro))
+                .andExpect(jsonPath("$.paths['/usuarios/{id}'].delete.responses['204'].content").doesNotExist())
+                .andExpect(jsonPath("$.components.schemas.ErroValidacaoResponse.properties.campos").exists())
+                .andExpect(jsonPath("$.components.schemas.UsuarioResponse.properties.senhaHash").doesNotExist());
+    }
+
+    @Test
+    void prefixoBearerDuplicadoNoAuthorizeRetorna401() throws Exception {
+        mvc.perform(get("/usuarios").header("Authorization", "Bearer " + bearer))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void swaggerUiContinuaPublico() throws Exception {
         mvc.perform(get("/swagger-ui/index.html")).andExpect(status().isOk());
     }
