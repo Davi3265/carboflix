@@ -3,6 +3,8 @@ package com.example.demo.doc;
 import com.example.demo.dto.request.CreateFilmeRequest;
 import com.example.demo.dto.request.UpdateFilmeRequest;
 import com.example.demo.dto.response.FilmeResponse;
+import com.example.demo.dto.response.ErroResponse;
+import com.example.demo.dto.response.ErroValidacaoResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -20,7 +22,8 @@ public interface FilmeControllerDoc {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Lista de registros",
                     content = @Content(mediaType = "application/json", array = @ArraySchema(schema = @Schema(implementation = FilmeResponse.class)))),
-            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido")
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class)))
     })
     ResponseEntity<List<FilmeResponse>> listar();
 
@@ -28,9 +31,12 @@ public interface FilmeControllerDoc {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Registro encontrado",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = FilmeResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Dados ou parâmetros inválidos"),
-            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido"),
-            @ApiResponse(responseCode = "404", description = "Recurso não encontrado")
+            @ApiResponse(responseCode = "400", description = "Dados ou parâmetros inválidos",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Recurso não encontrado",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class)))
     })
     ResponseEntity<FilmeResponse> buscarPorId(Long id);
 
@@ -38,10 +44,15 @@ public interface FilmeControllerDoc {
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Registro criado",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = FilmeResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Dados ou parâmetros inválidos"),
-            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido"),
-            @ApiResponse(responseCode = "404", description = "Recurso não encontrado"),
-            @ApiResponse(responseCode = "409", description = "Operação impede a integridade dos dados ou viola uma regra de negócio")
+            @ApiResponse(responseCode = "400", description = "Dados ou parâmetros inválidos",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(oneOf = {ErroValidacaoResponse.class, ErroResponse.class}))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Recurso não encontrado",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Operação impede a integridade dos dados ou viola uma regra de negócio",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class)))
     })
     ResponseEntity<FilmeResponse> criar(CreateFilmeRequest request);
 
@@ -49,20 +60,29 @@ public interface FilmeControllerDoc {
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Registro atualizado",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = FilmeResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Dados ou parâmetros inválidos"),
-            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido"),
-            @ApiResponse(responseCode = "404", description = "Recurso não encontrado"),
-            @ApiResponse(responseCode = "409", description = "Operação impede a integridade dos dados ou viola uma regra de negócio")
+            @ApiResponse(responseCode = "400", description = "Dados ou parâmetros inválidos",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(oneOf = {ErroValidacaoResponse.class, ErroResponse.class}))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Recurso não encontrado",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Operação impede a integridade dos dados ou viola uma regra de negócio",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class)))
     })
     ResponseEntity<FilmeResponse> atualizar(Long id, UpdateFilmeRequest request);
 
     @Operation(summary = "Remove um filme")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Registro removido"),
-            @ApiResponse(responseCode = "400", description = "Dados ou parâmetros inválidos"),
-            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido"),
-            @ApiResponse(responseCode = "404", description = "Recurso não encontrado"),
-            @ApiResponse(responseCode = "409", description = "Operação impede a integridade dos dados ou viola uma regra de negócio")
+            @ApiResponse(responseCode = "400", description = "Dados ou parâmetros inválidos",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Recurso não encontrado",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Operação impede a integridade dos dados ou viola uma regra de negócio",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class)))
     })
     ResponseEntity<Void> deletar(Long id);
 }

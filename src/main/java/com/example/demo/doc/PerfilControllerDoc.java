@@ -3,6 +3,8 @@ package com.example.demo.doc;
 import com.example.demo.dto.request.CreatePerfilRequest;
 import com.example.demo.dto.request.UpdatePerfilRequest;
 import com.example.demo.dto.response.PerfilResponse;
+import com.example.demo.dto.response.ErroResponse;
+import com.example.demo.dto.response.ErroValidacaoResponse;
 import com.example.demo.entity.Usuario;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -23,7 +25,8 @@ public interface PerfilControllerDoc {
             @ApiResponse(responseCode = "200", description = "Lista de perfis da conta",
                     content = @Content(mediaType = "application/json",
                             array = @ArraySchema(schema = @Schema(implementation = PerfilResponse.class)))),
-            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido")
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class)))
     })
     ResponseEntity<List<PerfilResponse>> listar(@Parameter(hidden = true) Usuario usuarioAutenticado);
 
@@ -33,8 +36,12 @@ public interface PerfilControllerDoc {
             @ApiResponse(responseCode = "200", description = "Perfil encontrado",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = PerfilResponse.class))),
-            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido"),
-            @ApiResponse(responseCode = "404", description = "Perfil não encontrado na conta")
+            @ApiResponse(responseCode = "400", description = "Id inválido",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Perfil não encontrado na conta",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class)))
     })
     ResponseEntity<PerfilResponse> buscarPorId(@Parameter(hidden = true) Usuario usuarioAutenticado, Long id);
 
@@ -44,9 +51,13 @@ public interface PerfilControllerDoc {
             @ApiResponse(responseCode = "201", description = "Perfil criado",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = PerfilResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos"),
-            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido"),
-            @ApiResponse(responseCode = "409", description = "Limite de perfis por conta atingido")
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(oneOf = {ErroValidacaoResponse.class, ErroResponse.class}))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Limite de perfis por conta atingido",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class)))
     })
     ResponseEntity<PerfilResponse> criar(@Parameter(hidden = true) Usuario usuarioAutenticado,
             CreatePerfilRequest request);
@@ -57,9 +68,13 @@ public interface PerfilControllerDoc {
             @ApiResponse(responseCode = "200", description = "Perfil atualizado",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = PerfilResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos"),
-            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido"),
-            @ApiResponse(responseCode = "404", description = "Perfil não encontrado na conta")
+            @ApiResponse(responseCode = "400", description = "Dados inválidos",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(oneOf = {ErroValidacaoResponse.class, ErroResponse.class}))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Perfil não encontrado na conta",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class)))
     })
     ResponseEntity<PerfilResponse> atualizar(@Parameter(hidden = true) Usuario usuarioAutenticado,
             Long id, UpdatePerfilRequest request);
@@ -68,9 +83,14 @@ public interface PerfilControllerDoc {
             description = "Exclui um perfil da conta autenticada. Avaliações vinculadas podem impedir a exclusão.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Perfil removido"),
-            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido"),
-            @ApiResponse(responseCode = "404", description = "Perfil não encontrado na conta"),
-            @ApiResponse(responseCode = "409", description = "Perfil vinculado a outros dados")
+            @ApiResponse(responseCode = "400", description = "Id inválido",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Token ausente ou inválido",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Perfil não encontrado na conta",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Perfil vinculado a outros dados",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class)))
     })
     ResponseEntity<Void> deletar(@Parameter(hidden = true) Usuario usuarioAutenticado, Long id);
 }

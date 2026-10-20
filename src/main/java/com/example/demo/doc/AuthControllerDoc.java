@@ -3,6 +3,8 @@ package com.example.demo.doc;
 import com.example.demo.dto.request.LoginRequest;
 import com.example.demo.dto.request.RegisterUserRequest;
 import com.example.demo.dto.response.LoginResponse;
+import com.example.demo.dto.response.ErroResponse;
+import com.example.demo.dto.response.ErroValidacaoResponse;
 import com.example.demo.dto.response.RegisterUserResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirements;
@@ -35,8 +37,11 @@ public interface AuthControllerDoc {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = RegisterUserResponse.class))
             ),
-            @ApiResponse(responseCode = "400", description = "Dados de cadastro inválidos"),
-            @ApiResponse(responseCode = "409", description = "E-mail já cadastrado")
+            @ApiResponse(responseCode = "400", description = "Dados de cadastro inválidos",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(oneOf = {ErroValidacaoResponse.class, ErroResponse.class}))),
+            @ApiResponse(responseCode = "409", description = "E-mail já cadastrado",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class)))
     })
     ResponseEntity<RegisterUserResponse> register(RegisterUserRequest request);
 
@@ -52,8 +57,11 @@ public interface AuthControllerDoc {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = LoginResponse.class))
             ),
-            @ApiResponse(responseCode = "400", description = "Dados de login inválidos"),
-            @ApiResponse(responseCode = "401", description = "E-mail ou senha inválidos")
+            @ApiResponse(responseCode = "400", description = "Dados de login inválidos",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(oneOf = {ErroValidacaoResponse.class, ErroResponse.class}))),
+            @ApiResponse(responseCode = "401", description = "E-mail ou senha inválidos",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErroResponse.class)))
     })
     ResponseEntity<LoginResponse> login(LoginRequest request);
 }

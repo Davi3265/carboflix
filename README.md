@@ -295,7 +295,9 @@ Seguindo a aula sobre documentação de API (springdoc-openapi, `@Tag`, `@Operat
 
 O Controller implementa a interface `*Doc` (ex.: `AuthController implements AuthControllerDoc`) e herda as anotações do Swagger — as anotações de mapeamento HTTP (`@PostMapping`, `@RequestBody`, `@Valid`) continuam só no Controller, pra não misturar documentação com a lógica da rota. Cada colega responsável por uma entidade deve criar sua própria `*ControllerDoc` (ex.: `PerfilControllerDoc`, `FilmeControllerDoc`) seguindo o mesmo padrão.
 
-Com a aplicação rodando, a documentação interativa fica em `http://localhost:8080/swagger-ui.html` (clique em "Authorize" e cole o token JWT obtido em `POST /auth/login`, no formato `Bearer <token>`, pra testar as rotas protegidas direto pela interface).
+Com a aplicação rodando, a documentação interativa fica em `http://localhost:8080/swagger-ui.html` (clique em "Authorize" e cole **só o token** JWT obtido em `POST /auth/login`, sem a palavra `Bearer`, pra testar as rotas protegidas direto pela interface — o esquema `bearerAuth` é do tipo HTTP Bearer e o Swagger UI já monta o header `Authorization: Bearer <token>`; colar `Bearer <token>` gera `Bearer Bearer ...` e a API responde 401).
+
+As respostas de erro documentadas usam os mesmos DTOs do `GlobalExceptionHandler`/`ApiAuthenticationEntryPoint`: `ErroResponse` para 400 (id ou JSON inválido), 401, 404 e 409, e `ErroValidacaoResponse` quando o 400 vem de campos inválidos no corpo (`@Valid`).
 
 ## CRUD de Perfil (Aula 10 — Davi)
 
@@ -332,7 +334,7 @@ $env:APP_PERFIS_LIMITE_POR_CONTA = "5"
 
 O sexto cadastro retorna 409 com o limite padrão. Excluir um perfil com avaliações vinculadas também pode retornar 409, pelo tratamento de integridade compartilhado; não há exclusão em cascata.
 
-Depois de registrar uma conta e obter o token em `/auth/login`, no Swagger clique em **Authorize**, informe o token JWT e use o grupo **Perfil**. Exemplo de corpo para POST e PUT:
+Depois de registrar uma conta e obter o token em `/auth/login`, no Swagger clique em **Authorize**, informe somente o token JWT (sem o prefixo `Bearer`) e use o grupo **Perfil**. Exemplo de corpo para POST e PUT:
 
 ```json
 {
